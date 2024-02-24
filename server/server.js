@@ -12,7 +12,6 @@ const multer = require('multer');
 const dotenv = require('dotenv');
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const sharp = require('sharp');
-const prisma = require('prisma');
 
 const PORT = 3003;
 const app = express();
@@ -46,7 +45,8 @@ app.post('/postImage',upload.single('user_image'), async (req, res) => {
 
     // resize image to a square
     const buffer = await sharp(req.file.buffer).resize({height: 1080, width: 1080, fit:'cover'}).toBuffer()
-
+    
+    // create post for s3 bucket and send
     const command = new PutObjectCommand({
         Bucket: bucketName,
         Key: `${req.body.user_id}_profile_image`,
@@ -56,15 +56,7 @@ app.post('/postImage',upload.single('user_image'), async (req, res) => {
 
     await s3.send(command)
 
-    const post = await prisma.post.create({
-        data: {
-            user_id: req.body.user_id,
-            imageName: `${req.body.user_id}_profile_image`
-        }
-    });
-
-    
-
+    // add entry to SQL data base with user_id, image_id, url
 
 });
 
