@@ -11,6 +11,8 @@ const express = require('express');
 const multer = require('multer');
 const dotenv = require('dotenv');
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const sharp = require('sharp');
+const prisma = require('prisma');
 
 const PORT = 3003;
 const app = express();
@@ -37,27 +39,40 @@ const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
 
 // Saves the user image to the S3 bucket
-app.post('/',upload.single('user_image'), async (req, res) => {
+app.post('/postImage',upload.single('user_image'), async (req, res) => {
     console.log('req.body: ', req.body)
     console.log('req.file: ', req.file)
     // req.file.buffer = actual image & what needs to be send to S3.
 
+    // resize image to a square
+    const buffer = await sharp(req.file.buffer).resize({height: 1080, width: 1080, fit:'cover'}).toBuffer()
+
     const command = new PutObjectCommand({
         Bucket: bucketName,
-        Key: req.file.originalname,
-        Body: req.file.buffer,
+        Key: `${req.body.user_id}_profile_image`,
+        Body: buffer,
         ContentType: req.file.mimetype,
     })
 
     await s3.send(command)
 
+    const post = await prisma.post.create({
+        data: {
+            user_id: req.body.user_id,
+            imageName: `${req.body.user_id}_profile_image`
+        }
+    });
+
+    
+
+
 });
 
 // returns the user image
-app.get('/');
+app.get('/getImage');
 
 app.listen(PORT, () => {
-    console.log(`Server listening on port: ${PORT}`)
+    console.log(`Server listening on image port: ${PORT}`)
 });
 
 module.exports = app;
