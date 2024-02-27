@@ -1,12 +1,10 @@
 /*
 Post = user ID & Image File
 Get = user ID
-
-Both will return the image file
-
-https://medium.com/@edsin.delikumar/node-js-with-aws-sdk-integrating-s3-bucket-in-express-7f203c0f8c87
+Both will return the image url
 https://www.youtube.com/watch?v=eQAIojcArRY&t=1230s
 */
+
 const express = require('express');
 const multer = require('multer');
 const dotenv = require('dotenv');
@@ -15,8 +13,14 @@ const sharp = require('sharp');
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const db = require('./model/model')
 
+// accessing image file
+const storage = multer.memoryStorage()
+const upload = multer({ storage: storage })
+upload.single('user_image')
+
 const PORT = 3003;
 const app = express();
+app.use(express.json())
 
 dotenv.config()
 
@@ -36,19 +40,17 @@ const s3 = new S3Client({
     region: bucketRegion
 })
 
-const storage = multer.memoryStorage()
-const upload = multer({ storage: storage })
+
 
 // Saves the user image to the S3 bucket
-app.post('/postImage',upload.single('user_image'), async (req, res) => {
+app.post('/postImage', async (req, res) => {
     console.log('req.body: ', req.body)
     console.log('req.file: ', req.file)
-    // req.file.buffer = actual image & what needs to be send to S3.
 
     // resize image to a square
     const buffer = await sharp(req.file.buffer).resize({height: 1080, width: 1080, fit:'cover'}).toBuffer()
     
-    // create post for s3 bucket and send
+    // create post for s3 bucket and send image
     const command = new PutObjectCommand({
         Bucket: bucketName,
         Key: `${req.body.user_id}_profile_image`,
@@ -66,7 +68,7 @@ app.post('/postImage',upload.single('user_image'), async (req, res) => {
     const urlCommand = new GetObjectCommand(getObjectParams)
     const imageUrl = await getSignedUrl(s3, urlCommand)
     console.log('imageUrl: ', imageUrl)
-
+    console.log('Home Free')
     // add entry to SQL data base with user_id, image_id, url
     db.query('INSERT INTO images (user_id, image_url) VALUES ($1, $2)', [req.body.user_id, imageUrl])
       .then((response) => {
@@ -81,7 +83,8 @@ app.post('/postImage',upload.single('user_image'), async (req, res) => {
 
 // returns the user image
 app.get('/getImage', async (req, res) => {
-  const { user_id } = req.body
+  const { user_id } = req.query
+  //const { user_id } = req.params
   
   db.query('SELECT image_url FROM images WHERE user_id = $1', [user_id])
   .then((response) => {
