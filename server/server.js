@@ -16,7 +16,6 @@ const db = require('./model/model')
 // accessing image file
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
-upload.single('user_image')
 
 const PORT = 3003;
 const app = express();
@@ -43,7 +42,7 @@ const s3 = new S3Client({
 
 
 // Saves the user image to the S3 bucket
-app.post('/postImage', async (req, res) => {
+app.post('/postImage', upload.single('user_image'), async (req, res) => {
     console.log('req.body: ', req.body)
     console.log('req.file: ', req.file)
 
