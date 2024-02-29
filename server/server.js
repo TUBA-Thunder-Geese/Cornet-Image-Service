@@ -12,15 +12,18 @@ const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/clien
 const sharp = require('sharp');
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const db = require('./model/model')
+const cors = require('cors')
 
 // accessing image file
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
+upload.single('image');
 
 const PORT = 3003;
 const app = express();
 app.use(express.json())
 
+app.use(cors())
 dotenv.config()
 
 // S3 access credentials
@@ -42,7 +45,7 @@ const s3 = new S3Client({
 
 
 // Saves the user image to the S3 bucket
-app.post('/postImage', upload.single('user_image'), async (req, res) => {
+app.post('/postImage', upload.single('image'), async (req, res) => {
     console.log('req.body: ', req.body)
     console.log('req.file: ', req.file)
 
@@ -80,6 +83,12 @@ app.post('/postImage', upload.single('user_image'), async (req, res) => {
     })
 });
 
+app.get('/', (req, res) =>{
+  console.log('received get request from API gateway')
+  res.send('received get request from API gateway')
+})
+
+/*
 // returns the user image
 app.get('/getImage', async (req, res) => {
   const { user_id } = req.query
@@ -99,7 +108,7 @@ app.get('/getImage', async (req, res) => {
     res.status(500).json({ error: 'An error occurred when trying to access user image.'})
   })
 });
-
+*/
 app.listen(PORT, () => {
     console.log(`Server listening on image port: ${PORT}`)
 });
