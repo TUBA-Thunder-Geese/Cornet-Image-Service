@@ -27,63 +27,77 @@ app.use(cors())
 dotenv.config()
 
 // S3 access credentials
-const bucketName = process.env.BUCKET_NAME
-const bucketRegion= process.env.BUCKET_REGION
-const accessKey= process.env.ACCESS_KEY
-const secretAccessKey= process.env.SECRET_ACCESS_KEY
+// const bucketName = process.env.BUCKET_NAME
+// const bucketRegion= process.env.BUCKET_REGION
+// const accessKey= process.env.ACCESS_KEY
+// const secretAccessKey= process.env.SECRET_ACCESS_KEY
+
+// const bucketName = 'cs-ptg-cornet-media'
+// const bucketRegion = 'us-west-2'
+// const accessKey = 'AKIA2UC3A6W5ULRD4VP7'
+// const secretAccessKey = 'rXB¡1WJE/JaK6lnUyODhcbNO2PwMQEgth1Nq69K6'
+
+
+const bucketName = "rmarkowi1990"
+const bucketRegion = "us-west-1"
+const accessKey = "AKIA42LHJIHYBI4PA7VC"
+const secretAccessKey = "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"
+
 
 
 // creating an S3Client class with access credentials
 const s3 = new S3Client({
-    credentials: {
-      accessKeyID: accessKey,
-      secretAccessKey: secretAccessKey,
-    },
-    region: bucketRegion
+  credentials: {
+    accessKeyId: accessKey,
+    secretAccessKey: secretAccessKey,
+  },
+  region: bucketRegion
 })
 
 
 
 // Saves the user image to the S3 bucket
 app.post('/postImage', upload.single('image'), async (req, res) => {
-    console.log('req.body: ', req.body)
-    console.log('req.file: ', req.file)
+  console.log('req.body: ', req.body)
+  console.log('req.file: ', req.file)
 
-    // resize image to a square
-    const buffer = await sharp(req.file.buffer).resize({height: 1080, width: 1080, fit:'cover'}).toBuffer()
-    
-    // create post for s3 bucket and send image
-    const command = new PutObjectCommand({
-        Bucket: bucketName,
-        Key: `${req.body.user_id}_profile_image`,
-        Body: buffer,
-        ContentType: req.file.mimetype,
+  // resize image to a square
+  const buffer = await sharp(req.file.buffer).resize({ height: 1080, width: 1080, fit: 'cover' }).toBuffer()
+
+  console.log('reached line 55. Passed sharp')
+  // create post for s3 bucket and send image
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: `${req.body.user_id}_profile_image`,
+    Body: buffer,
+    ContentType: req.file.mimetype,
+  })
+  console.log('reached like 63, about to send to S3 bucket')
+  await s3.send(command)
+  console.log('reached line 65. Sent to S3')
+  // get image url from newly created bucket entry
+  const getObjectParams = {
+    Bucket: bucketName,
+    Key: `${req.body.user_id}_profile_image`
+  }
+  console.log('reached line 71. About to get URL')
+  const urlCommand = new GetObjectCommand(getObjectParams)
+  console.log('reahed line 73. about to get signed url')
+  const imageUrl = await getSignedUrl(s3, urlCommand)
+  console.log('imageUrl: ', imageUrl)
+  // add entry to SQL data base with user_id, image_id, url
+  db.query('INSERT INTO images (user_id, image_url) VALUES ($1, $2)', [req.body.user_id, imageUrl])
+    .then((response) => {
+      console.log('user_id and image_url successfully added to SQL: ', response)
+      res.status(200).json({ message: 'Image added successfully!', imageUrl });
     })
-
-    await s3.send(command)
-
-    // get image url from newly created bucket entry
-    const getObjectParams = {
-        Bucket: bucketName,
-        Key: `${req.body.user_id}_profile_image`
-    }
-    const urlCommand = new GetObjectCommand(getObjectParams)
-    const imageUrl = await getSignedUrl(s3, urlCommand)
-    console.log('imageUrl: ', imageUrl)
-    console.log('Home Free')
-    // add entry to SQL data base with user_id, image_id, url
-    db.query('INSERT INTO images (user_id, image_url) VALUES ($1, $2)', [req.body.user_id, imageUrl])
-      .then((response) => {
-        console.log('user_id and image_url successfully added to SQL: ', response)
-        res.status(200).json({ message: 'Image added successfully!', imageUrl });
-      })
-      .catch((err) => {
-        console.log('And error ocurred when adding the user_id and image_id to SQL: ', err)
-        res.status(500).json({ error: 'An error occurred while adding the image.' });
+    .catch((err) => {
+      console.log('And error ocurred when adding the user_id and image_id to SQL: ', err)
+      res.status(500).json({ error: 'An error occurred while adding the image.' });
     })
 });
 
-app.get('/', (req, res) =>{
+app.get('/', (req, res) => {
   console.log('received get request from API gateway')
   res.send('received get request from API gateway')
 })
@@ -104,13 +118,13 @@ app.get('/getImage', async (req, res) => {
     res.status(200).json({ imageUrl })
   })
   .catch((err) => {
-    console.log('An error occurred when trying to access user image: ', err)
+    console.log('An error occurrednm when trying to access user image: ', err)
     res.status(500).json({ error: 'An error occurred when trying to access user image.'})
   })
 });
 */
 app.listen(PORT, () => {
-    console.log(`Server listening on image port: ${PORT}`)
+  console.log(`Server listening on image port: ${PORT}`)
 });
 
 module.exports = app;
