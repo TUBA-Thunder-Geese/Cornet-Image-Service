@@ -106,7 +106,7 @@ app.post('/postImage', upload.single('image'), async (req, res) => {
   const imageUrl = await getSignedUrl(s3, urlCommand)
   console.log('imageUrl: ', imageUrl)
   // add entry to SQL data base with user_id, image_id, url
-  db.query('INSERT INTO images (user_id, image_url) VALUES ($1, $2)', [req.body.user_id, imageUrl])
+  db_local.query('INSERT INTO images (user_id, image_url) VALUES ($1, $2)', [req.body.user_id, imageUrl])
     .then((response) => {
       console.log('user_id and image_url successfully added to SQL: ', response)
       res.status(200).json({ message: 'Image added successfully!', imageUrl });
@@ -117,10 +117,28 @@ app.post('/postImage', upload.single('image'), async (req, res) => {
     })
 });
 
+app.get('/getImage/:user_id', async (req, res, next) => {
+  try {
+
+    const user_id = req.params.user_id;
+
+    const response = await db_local.query(`SELECT * FROM images WHERE user_id = ${user_id}`)
+    res.status(200).send(response.rows[0].image_url)
+
+  } catch (error) {
+    next(error)
+
+  }
+
+})
+
 app.get('/', (req, res) => {
   console.log('received get request from API gateway')
   res.send('received get request from API gateway')
 })
+
+
+
 
 /*
 // returns the user image
