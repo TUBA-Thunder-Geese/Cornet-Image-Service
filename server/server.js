@@ -14,6 +14,8 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const db = require('./model/model')
 const cors = require('cors')
 
+const db_local = require('./model/model_local')
+
 // accessing image file
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
@@ -26,6 +28,21 @@ const app = express();
 app.use(express.json())
 
 app.use(cors())
+
+app.get('/setup', async (req, res) => {
+  try {
+    await db_local.query(`CREATE TABLE images (
+      user_id INT UNIQUE NOT NULL,
+      image_url VARCHAR(1000) UNIQUE NOT NULL
+     
+      );`);
+
+    res.status(200).json({ message: 'successfully created database table "images"' })
+  } catch (err) {
+    console.log(err);
+    res.sendStatus(500);
+  }
+})
 
 
 // S3 access credentials
