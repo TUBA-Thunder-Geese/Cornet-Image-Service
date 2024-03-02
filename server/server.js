@@ -19,12 +19,14 @@ const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
 upload.single('image');
 
+require('dotenv').config()
+
 const PORT = 3003;
 const app = express();
 app.use(express.json())
 
 app.use(cors())
-dotenv.config()
+
 
 // S3 access credentials
 // const bucketName = process.env.BUCKET_NAME
@@ -38,10 +40,11 @@ dotenv.config()
 // const secretAccessKey = 'rXB¡1WJE/JaK6lnUyODhcbNO2PwMQEgth1Nq69K6'
 
 
-const bucketName = "rmarkowi1990"
-const bucketRegion = "us-west-1"
-const accessKey = "AKIA42LHJIHYBI4PA7VC"
-const secretAccessKey = "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"
+
+const bucketName = process.env.BUCKET_NAME
+const bucketRegion = process.env.BUCKET_REGION
+const accessKey = process.env.ACCESS_KEY
+const secretAccessKey = process.env.SECRET_ACCESS_KEY
 
 
 
