@@ -1,7 +1,7 @@
 version: "3"
 services:
   image-service:
-    image: b968adaa2693
+    image: ae63dc77e68e
     ports:
       - "3003:3003"
     depends_on:

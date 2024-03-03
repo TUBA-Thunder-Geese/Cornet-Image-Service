@@ -1,9 +1,3 @@
-/*
-Post = user ID & Image File
-Get = user ID
-Both will return the image url
-https://www.youtube.com/watch?v=eQAIojcArRY&t=1230s
-*/
 
 const express = require('express');
 const multer = require('multer');
@@ -45,17 +39,6 @@ app.get('/setup', async (req, res) => {
 })
 
 
-// S3 access credentials
-// const bucketName = process.env.BUCKET_NAME
-// const bucketRegion= process.env.BUCKET_REGION
-// const accessKey= process.env.ACCESS_KEY
-// const secretAccessKey= process.env.SECRET_ACCESS_KEY
-
-// const bucketName = 'cs-ptg-cornet-media'
-// const bucketRegion = 'us-west-2'
-// const accessKey = 'AKIA2UC3A6W5ULRD4VP7'
-// const secretAccessKey = 'rXB¡1WJE/JaK6lnUyODhcbNO2PwMQEgth1Nq69K6'
-
 
 
 const bucketName = process.env.BUCKET_NAME
@@ -64,8 +47,6 @@ const accessKey = process.env.ACCESS_KEY
 const secretAccessKey = process.env.SECRET_ACCESS_KEY
 
 
-
-// creating an S3Client class with access credentials
 const s3 = new S3Client({
   credentials: {
     accessKeyId: accessKey,
@@ -90,31 +71,46 @@ app.post('/postImage', upload.single('image'), async (req, res) => {
     Bucket: bucketName,
     Key: `${req.body.user_id}_profile_image`,
     Body: buffer,
-    ContentType: req.file.mimetype,
+    // ContentType: req.file.mimetype,
+    ContentType: 'image/jpeg'
   })
-  console.log('reached like 63, about to send to S3 bucket')
   await s3.send(command)
-  console.log('reached line 65. Sent to S3')
   // get image url from newly created bucket entry
   const getObjectParams = {
     Bucket: bucketName,
     Key: `${req.body.user_id}_profile_image`
   }
-  console.log('reached line 71. About to get URL')
   const urlCommand = new GetObjectCommand(getObjectParams)
-  console.log('reahed line 73. about to get signed url')
   const imageUrl = await getSignedUrl(s3, urlCommand)
-  console.log('imageUrl: ', imageUrl)
   // add entry to SQL data base with user_id, image_id, url
-  db_local.query('INSERT INTO images (user_id, image_url) VALUES ($1, $2)', [req.body.user_id, imageUrl])
-    .then((response) => {
-      console.log('user_id and image_url successfully added to SQL: ', response)
-      res.status(200).json({ message: 'Image added successfully!', imageUrl });
-    })
-    .catch((err) => {
-      console.log('And error ocurred when adding the user_id and image_id to SQL: ', err)
-      res.status(500).json({ error: 'An error occurred while adding the image.' });
-    })
+
+  const exists = await db_local.query(`SELECT * FROM images WHERE user_id = ${req.body.user_id}`)
+
+  if (exists.rows.length === 0) {
+
+    db_local.query('INSERT INTO images (user_id, image_url) VALUES ($1, $2)', [req.body.user_id, imageUrl])
+      .then((response) => {
+        console.log('user_id and image_url successfully added to SQL: ', response)
+        res.status(200).json({ message: 'Image added successfully!', imageUrl });
+      })
+      .catch((err) => {
+        console.log('And error ocurred when adding the user_id and image_id to SQL: ', err)
+        res.status(500).json({ error: 'An error occurred while adding the image.' });
+      })
+
+  } else {
+    db_local.query(`UPDATE images SET image_url = '${imageUrl}' WHERE user_id = ${req.body.user_id}`)
+      .then((response) => {
+        console.log('image_url successfully udpated in SQL: ', response)
+        res.status(200).json({ message: 'Image changed successfully!', imageUrl });
+      })
+      .catch((err) => {
+        console.log('And error ocurred when adding the user_id and image_id to SQL: ', err)
+        res.status(500).json({ error: 'An error occurred while adding the image.' });
+      })
+
+
+  }
 });
 
 app.get('/getImage/:user_id', async (req, res, next) => {
@@ -139,28 +135,6 @@ app.get('/', (req, res) => {
 
 
 
-
-/*
-// returns the user image
-app.get('/getImage', async (req, res) => {
-  const { user_id } = req.query
-  //const { user_id } = req.params
-  
-  db.query('SELECT image_url FROM images WHERE user_id = $1', [user_id])
-  .then((response) => {
-    if (response.rows.length === 0){
-        return res.status(404).json({ error: 'no image found for ', user_id})
-    }
-    const imageUrl = response.rows[0].image_url
-    console.log('user image found: ', imageUrl)
-    res.status(200).json({ imageUrl })
-  })
-  .catch((err) => {
-    console.log('An error occurrednm when trying to access user image: ', err)
-    res.status(500).json({ error: 'An error occurred when trying to access user image.'})
-  })
-});
-*/
 app.listen(PORT, () => {
   console.log(`Server listening on image port: ${PORT}`)
 });
