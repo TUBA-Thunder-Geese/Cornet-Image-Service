@@ -16,6 +16,12 @@ services:
       POSTGRES_PASSWORD: password123
       POSTGRES_USER: user123
       POSTGRES_DB: image
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yaml
 volumes:
   database:
 

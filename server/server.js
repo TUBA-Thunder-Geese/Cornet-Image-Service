@@ -8,6 +8,7 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const db = require('./model/model')
 const cors = require('cors')
 const promClient = require('prom-client');
+const { httpRequestDurationMicroseconds, syntaxErrorsCounter } = require('./metrics/prometheus_methods');
 
 const db_local = require('./model/model_local')
 
@@ -133,6 +134,43 @@ app.get('/', (req, res) => {
   console.log('received get request from API gateway')
   res.send('received get request from API gateway')
 })
+
+// Example middleware to record request duration for prometheus metrics
+app.use((req, res, next) => {
+  const end = httpRequestDurationMicroseconds.startTimer();
+  res.on('finish', () => {
+    end({ method: req.method, route: req.route.path, status_code: res.statusCode });
+  });
+  next();
+});
+
+// Expose metrics endpoint for Prometheus to scrape
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', promClient.register.contentType);
+  res.json( await promClient.register.metrics());
+});
+
+// Global Error handler
+app.use((err, req, res, next) => {
+  const defaultErr = {
+    log: 'profile service global error handler caught unknown ærror',
+    status: 500,
+    message: { err: 'unknown error occured in profile service' }
+  }
+
+  // prometheus error logging
+  syntaxErrorsCounter.labels({
+    error_type: err.name, 
+    error_stack: err.stack,
+    error_message: err.message,
+    exact_time: new Date().getTime(),
+    service: 'auth'
+  }).inc()
+
+  const errorObj = Object.assign(defaultErr, err);
+  console.log(errorObj.message)
+  res.status(errorObj.status).json(errorObj.message);
+});
 
 
 
