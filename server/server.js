@@ -7,6 +7,7 @@ const sharp = require('sharp');
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const db = require('./model/model')
 const cors = require('cors')
+const promClient = require('prom-client');
 
 const db_local = require('./model/model_local')
 
