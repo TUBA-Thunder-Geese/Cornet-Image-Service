@@ -1,7 +1,7 @@
 version: "3"
 services:
-  image-service:
-    image: ae63dc77e68e
+  app:
+    image: cornet-image-service
     ports:
       - "3003:3003"
     depends_on:

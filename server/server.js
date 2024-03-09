@@ -8,7 +8,7 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const db = require('./model/model')
 const cors = require('cors')
 const promClient = require('prom-client');
-const { httpRequestDurationMicroseconds, syntaxErrorsCounter } = require('./metrics/prometheus_methods');
+const { httpRequestDurationMicroseconds, syntaxErrorsCounter } = require('../metrics/prometheus_metrics');
 
 const db_local = require('./model/model_local')
 
