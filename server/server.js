@@ -135,15 +135,6 @@ app.get('/', (req, res) => {
   res.send('received get request from API gateway')
 })
 
-// Example middleware to record request duration for prometheus metrics
-app.use((req, res, next) => {
-  const end = httpRequestDurationMicroseconds.startTimer();
-  res.on('finish', () => {
-    end({ method: req.method, route: req.route.path, status_code: res.statusCode });
-  });
-  next();
-});
-
 // Expose metrics endpoint for Prometheus to scrape
 app.get('/metrics', async (req, res) => {
   res.set('Content-Type', promClient.register.contentType);
@@ -164,7 +155,7 @@ app.use((err, req, res, next) => {
     error_stack: err.stack,
     error_message: err.message,
     exact_time: new Date().getTime(),
-    service: 'auth'
+    service: 'image'
   }).inc()
 
   const errorObj = Object.assign(defaultErr, err);
