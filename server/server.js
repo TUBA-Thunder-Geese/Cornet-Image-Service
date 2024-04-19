@@ -138,7 +138,7 @@ app.get('/', (req, res) => {
 // Expose metrics endpoint for Prometheus to scrape
 app.get('/metrics', async (req, res) => {
   res.set('Content-Type', promClient.register.contentType);
-  res.json( await promClient.register.metrics());
+  res.send( await promClient.register.metrics());
 });
 
 // Global Error handler
